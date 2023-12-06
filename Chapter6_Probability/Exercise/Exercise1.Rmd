@@ -1,0 +1,118 @@
+---
+title: "QSS_Chapter6"
+author: "my"
+date: "2021/12/9"
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+geometry: left=2.5cm,right=2cm,top=3cm,bottom=2.5cm
+documentclass: ctexart
+classoption: hyperref,
+---
+
+```{r}
+setwd("D:/QSS/Chapter6_Probability/Exercise")
+
+```
+
+## 5个摆砣可以设置多少不同的5位密码
+```{r}
+## 一个摆砣10个指针，标有0到9
+## 可以设置10^5种密码
+modes <- I(10^5) 
+modes
+```
+
+## 电路板可以提供多少种不同的设置？即，26个字母有多少种方法分为13组？
+```{r}
+## 在26个不同对象中排列13个对象的排列数
+plugboardpair <- choose(26, 13) * factorial(13)
+plugboardpair
+
+```
+
+## 小恩格玛机总共有多少种可能的设置？
+```{r}
+settings <- modes * plugboardpair
+settings
+
+```
+
+## 找出最有可能未能成功解码消息的机器
+```{r}
+## 事件：未被成功解码；该事件的边际概率P(错误)
+margin.unsuccess <- (300*0.1 + 400*0.05 + 250*0.15 + 340*0.17 + 210*0.2) / 1500
+margin.unsuccess
+## 联合概率，P(某机器和错误) = P(错误|某机器) * P(某机器)
+joint.p <- c(0.1*300/1500, 0.05*400/1500, 0.15*250/1500, 0.17*340/1500, 0.2*210/1500)
+condition.p <- NA
+## P(机器|错误) = P(某机器和错误) / P(错误)
+for (i in 1:5){
+  condition.p[i] <- joint.p[i] / margin.unsuccess
+}
+condition.p
+## 第四台机器Crib为此错误负责的概率最大
+```
+
+## 创建一个plugboard的函数
+```{r}
+
+plugboard <- function(){
+  out <- matrix(data = NA, nrow = 2, ncol = 13) # 创建输出的 2×13 矩阵
+  S1 <- sample(LETTERS, 13, replace = FALSE) # 从 26 个字母中随机抽取 13 个，不可重复
+  leftletters <- LETTERS[!LETTERS %in% S1] # 提取 LS 中与 S1 不重复的元素，即未被抽样的 13 个字母
+  S2 <- sample(leftletters, 13, replace = FALSE) # 把剩下13个也随机打乱
+  out[1, ] <- S1
+  out[2, ] <- S2
+  return(out) # 输出随机矩阵
+}
+plugboard()
+
+
+```
+
+## 进行加密解密
+```{r}
+## 加密
+PB <- plugboard()
+PB
+encode <- function(PB, Text){ # 输入字符替换规则和信息
+  UText <- toupper(Text) # 将输入的信息转换为大写
+  ## 第一行和第二行的字符不一样
+  for(i in 1:13){
+    UText <- gsub(PB[1, i], PB[2, i], UText) # 矩阵第二行的字符替换第一行的字符
+  }
+  for(i in 1:13){
+    UText <- gsub(PB[2, i], PB[1, i], UText) # 矩阵第一行的字符替换第二行的字符
+    }
+  out <- tolower(UText) # 将输出的信息转换为小写
+  return(out)
+}
+
+## 解密
+decode <- function(PB, Text){ # 输入字符替换规则和信息
+  UText <- toupper(Text) # 将输入的信息转换为大写 
+  for(i in 1:13){
+    UText <- gsub(PB[2, i], PB[1, i], UText) # 解密时用矩阵第一行的字符替换第二行
+  }
+  for(i in 1:13){
+    UText <- gsub(PB[1, i], PB[2, i], UText) # 解密时用矩阵第二行的字符替换第一行
+  }
+  out <- tolower(UText) # 将输出的信息转换为小写
+  return(out)
+}
+
+rawText <- "hello world"
+encodeText <- encode(PB, rawText)
+encodeText
+decodeText <- decode(PB, encodeText)
+decodeText
+```
+

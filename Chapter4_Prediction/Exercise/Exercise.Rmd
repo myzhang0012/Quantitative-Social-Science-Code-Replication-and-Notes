@@ -1,0 +1,211 @@
+---
+title: "QSS_Chapter3"
+author: "my"
+date: "2021/12/9"
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+geometry: left=2.5cm,right=2cm,top=3cm,bottom=2.5cm
+documentclass: ctexart
+classoption: hyperref,
+---
+
+```{r}
+setwd("D:/QSS/Chapter4_Prediction/Exercise")
+intrade08 <- read.csv("intrade08.csv")
+intrade12 <- read.csv("intrade12.csv")
+pres08 <- read.csv("pres08.csv")
+pres12 <- read.csv("pres12.csv")
+polls08 <- read.csv("polls08.csv")
+polls12 <- read.csv("polls12.csv")
+```
+
+## 使用选举前一天的市场价格来预测2008年的选举结果
+```{r}
+## 使用收盘价预测 2008 年选举结果
+## （收盘价）预测民主党获胜幅度 = 民主党收盘价-共和党收盘价
+intrade08$diff.price <- intrade08$PriceD - intrade08$PriceR
+## 真实奥巴马获胜幅度 = 奥巴马投票份额-麦凯恩投票份额
+pres08$margin <- pres08$Obama - pres08$McCain
+## 创建数据子集：2008-11-03 日的各州数据（选举前一天）
+intrade08$day <- as.Date(intrade08$day) # 将变量 day 转换为 Data 类型
+intrade08day <- subset(intrade08, day == as.Date("2008-11-03"))
+## 预测、真实的获胜幅度正负号判断，符号不同则错误分类（可以直接得到被错误分类的州！）
+pres08$state[sign(intrade08day$diff.price) != sign(pres08$margin)]
+
+## 预测结果可视化
+plot(intrade08day$diff.price, pres08$margin, type = "n",
+     xlab = " 通过收盘价预测的获胜幅度（2008 年）", ylab = " 真实的获胜幅度（2008 年）",
+     xlim = c(-100, 100), ylim = c(-50, 100))
+text(x = intrade08day$diff.price, y = pres08$margin, # 添加标签
+     labels = pres08$state, cex = 0.6, col = "blue")
+abline(v = 0, lty = "dashed") #0 点垂直线
+abline(h = 0, lty = "dashed") #0 点水平线
+
+```
+答：使用 2008 年博彩市场的收盘价预测选举结果，”IN”（印第安纳州）和”MO”（密苏里州）被错
+误分类。使用 2008 年民意调查的预测选举结果，3 个州被分类错误
+
+```{r}
+## 收盘价预测 2012 年选举结果
+## （收盘价）预测民主党获胜幅
+intrade12$diff.price <- intrade12$PriceD - intrade12$PriceR
+## 真实奥巴马获胜幅度
+pres12$margin <- pres12$Obama - pres12$Romney
+## 创建数据子集：2012-11-05 日的各州数据（选举前一天）
+intrade12$day <- as.Date(intrade12$day) # 将变量 day 转换为 Data 类型
+intrade12day <- subset(intrade12, day == as.Date("2012-11-05"))
+## 有缺失值的州代表预测正确，删除有缺失值的行
+intrade12day <- na.omit(intrade12day)
+## 获得余下的州所对应的真实获胜幅度
+intrade12day$pres12.margin <- NA # 创建新变量：用于放置对应州的真实获胜幅度
+st.names <- unique(intrade12day$state) # 提取目前数据集中唯一的州名
+for (i in 1:nrow(intrade12day)){
+  state.data <- subset(intrade12day, 
+                       subset = (state == st.names[i]))
+  intrade12day$pres12.margin[i] <- pres12$margin[pres12$state == st.names[i]]
+}
+## 找出正负不相同的州：预测失败的州
+intrade12day$state[sign(intrade12day$diff.price) != sign(intrade12day$pres12.margin)]
+
+## 预测结果可视化
+plot(intrade12day$diff.price, intrade12day$pres12.margin, type = "n",
+     xlab = " 通过收盘价预测的获胜幅度（2012 年）", ylab = " 真实的获胜幅度（2012 年）",
+     xlim = c(-100, 100), ylim = c(-50, 100))
+text(x = intrade12day$diff.price, y =intrade12day$pres12.margin, # 添加标签
+     labels = pres08$state, col = "blue")
+abline(v = 0, lty = "dashed") #0 点垂直线
+abline(h = 0, lty = "dashed") #0 点水平线
+
+```
+
+```{r}
+```
+
+## 2.1
+```{r}
+progresa <- read.csv("progresa.csv")
+# View(progresa)
+
+## 先比较干预组和对照组中的平均结果差异
+## 投票率差异
+mean(progresa$pri2000s[progresa$treatment == 1]) - 
+  mean(progresa$pri2000s[progresa$treatment == 0])
+## 支持率差异
+mean(progresa$t2000[progresa$treatment == 1]) - 
+  mean(progresa$t2000[progresa$treatment == 0])
+
+## 通过将结果变量和干预变量回归来估计这种影响
+lm(pri2000s ~ treatment, data = progresa) # CCT计划对投票率
+
+lm(t2000 ~ treatment, data = progresa) # CCT计划对支持率
+
+```
+## 2.2
+```{r}
+## CCT计划对投票率
+lm(pri2000s ~ treatment + avgpoverty + pobtot1994 + votos1994 +
+     pri1994 + pan1994 + prd1994 +
+     avgpoverty:treatment + pobtot1994:treatment + votos1994:treatment +
+     pri1994:treatment + pan1994:treatment + prd1994:treatment,
+   data = progresa)
+## CCT计划对支持率
+lm(t2000 ~ treatment + avgpoverty + pobtot1994 + votos1994 +
+     pri1994 + pan1994 + prd1994 +
+     avgpoverty:treatment + pobtot1994:treatment + votos1994:treatment +
+     pri1994:treatment + pan1994:treatment + prd1994:treatment,
+   data = progresa)
+```
+
+## 2.3
+```{r}
+## CCT计划对投票率
+lm(pri2000s ~ treatment + avgpoverty + I(log(pobtot1994)) + 
+     t1994 + pri1994s + pan1994s + prd1994s +
+     avgpoverty:treatment + I(log(pobtot1994)):treatment + t1994:treatment + 
+     pri1994s:treatment + pan1994s:treatment + prd1994s:treatment,
+   data = progresa)
+## CCT计划对支持率
+lm(t2000 ~ treatment + avgpoverty + I(log(pobtot1994)) + 
+     t1994 + pri1994s + pan1994s + prd1994s +
+     avgpoverty:treatment + I(log(pobtot1994)):treatment + t1994:treatment + 
+     pri1994s:treatment + pan1994s:treatment + prd1994s:treatment,
+   data = progresa)
+
+```
+
+## 2.4
+```{r}
+boxplot(, data = progresa, names = c("treatment0", "treatment1"))
+```
+
+## 2.5
+```{r}
+## CCT计划对投票率
+lm(pri2000v ~ treatment + avgpoverty + I(log(pobtot1994)) + t1994r + 
+     pri1994v + pan1994v + prd1994v + avgpoverty:treatment + 
+     I(log(pobtot1994)):treatment + t1994r:treatment + pri1994v:treatment + 
+     pan1994v:treatment + prd1994v:treatment,
+   data = progresa)
+## CCT计划对支持率
+lm(t2000r ~ treatment + avgpoverty + I(log(pobtot1994)) + t1994r + 
+     pri1994v + pan1994v + prd1994v + avgpoverty:treatment + 
+     I(log(pobtot1994)):treatment + t1994r:treatment + pri1994v:treatment + 
+     pan1994v:treatment + prd1994v:treatment,
+   data = progresa)
+```
+
+```{r}
+## CCT计划对投票率
+fit.p <- lm(pri2000v ~ treatment + I(log(pobtot1994)) + avgpoverty + I(avgpoverty^2) + 
+     I(log(pobtot1994)):treatment + avgpoverty:treatment + I(avgpoverty^2):treatment,
+   data = progresa)
+fit.p
+## CCT计划对支持率
+fit.t <- lm(t2000r ~ treatment + I(log(pobtot1994)) + avgpoverty + I(avgpoverty^2) + 
+     I(log(pobtot1994)):treatment + avgpoverty:treatment + I(avgpoverty^2):treatment,
+   data = progresa)
+fit.t
+
+## 接受Progresa项目干预的预测结果
+## 投票率
+p.hat1 <- predict(fit.p,
+                  newdata = data.frame(avgpoverty = progresa$avgpoverty, treatment = 1))
+## 支持率
+t.hat1 <- predict(fit.t,
+                  newdata = data.frame(avgpoverty = progresa$avgpoverty, treatment = 1))
+
+## 不接受Progresa项目干预（控制组）的预测结果
+## 投票率
+p.hat0 <- predict(fit.p,
+                  newdata = data.frame(progresa$avgpoverty, treatment = 0))
+## 支持率
+t.hat0 <- predict(fit.t,
+                  newdata = data.frame(progresa$avgpoverty, treatment = 0))
+
+## plotting the predicted turnout rate under each condition
+plot(x = avgpoverty, y = p.hat0, type = "l", xlim = c(20, 90), ylim = c(0, 0.5),
+     xlab = "贫困水平", ylab = "预测投票率")
+lines(x = avgpoverty, y = p.hat0, lty = "dashed")
+text(40, 0.45, "干预组")
+text(45, 0.15, "控制组")
+
+plot(x = avgpoverty, y = t.hat0, type = "l", xlim = c(20, 90), ylim = c(0, 0.5),
+     xlab = "贫困水平", ylab = "预测支持率")
+lines(x = avgpoverty, y = t.hat0, lty = "dashed")
+text(40, 0.45, "干预组")
+text(45, 0.15, "控制组")
+
+## plotting the average treatment effect as a function of age
+plot(x = 25:85, y = yT.hat - yC.hat, type = "l", xlim = c(20, 90),
+     ylim = c(0, 0.1), xlab = "Age",
+     ylab = "Estimated average treatment effect")
+
+```

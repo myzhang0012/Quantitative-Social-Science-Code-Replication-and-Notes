@@ -1,0 +1,121 @@
+---
+title: "QSS_Chapter3"
+author: "my"
+date: "2021/12/9"
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+geometry: left=2.5cm,right=2cm,top=3cm,bottom=2.5cm
+documentclass: ctexart
+classoption: hyperref,
+---
+
+```{r}
+setwd("D:/QSS/Chapter2_Causality/Exercise")
+leaders <- read.csv("leaders.csv")
+View(leaders)
+summary(leaders)
+```
+
+# 记录了多少次刺杀企图，有多少国家遇到至少一次领导人刺杀其他，这些国家里刺杀的平均次数（每年）是多少
+```{r}
+nrow(leaders) # 记录了多少次刺杀企图
+length(unique(leaders$country)) # 有多少国家遇到至少一次领导人刺杀企图
+
+leaders$country <- as.factor(leaders$country)
+levels(leaders$country)
+table(leaders$country)
+
+
+# 刺杀总数/记录时间段
+range(leaders$year)
+table(leaders$country)/(max(leaders$year) - min(leaders$year))
+```
+
+# 2. 创建一个标记着领导人遭到暗杀后是否存活的新变量，计算领导人暗杀的总体成功率，结果是否说明暗杀企图的成功率是随机决定的？
+# 创建success二元变量
+```{r}
+leaders$success <- ifelse(leaders$result == "dies between a day and a week" | 
+                            leaders$result == "dies between a week and a month" | 
+                            leaders$result ==  "dies within a day after the attack" | 
+                            leaders$result == "dies, timing unknown", 
+                          1,0)
+successrate <- mean(leaders$success)
+successrate
+
+# 该结果是否说明暗杀企图的成功率是随机决定的？
+```
+
+# 3. 探究暗杀成功和失败是否与暗杀前三年的平均政权得分有关；检查暗杀成功与失败的尝试之间目标领导者的年龄是否有差异
+```{r}
+# 暗杀前三年的平均政权得分是否与暗杀成功和失败有关
+tapply(leaders$politybefore, leaders$success, mean)
+# 暗杀成功与失败的尝试之间目标领导者的年龄是否有差异
+tapply(leaders$age, leaders$success, mean)
+```
+
+# 4. 暗杀成功和失败是否与刺杀企图前三年的战争经验有关
+在名为warbefore的数据框中创建一个新的二元变量，若一个国家在刺杀企图前三年参加国内或国际战争，则编码为1
+```{r}
+# 创建warbefore二元变量，1表示前三年有国内或国际战争经验，0表示没有
+leaders$warbefore <- NA
+leaders$warbefore[leaders$interwarbefore == 1 | leaders$civilwarbefore == 1] <- 1
+leaders$warbefore[leaders$interwarbefore == 0 & leaders$civilwarbefore == 0] <- 0
+# table(leaders$warbefore)
+# 暗杀成功和失败是否与刺杀企图前三年的战争经验有关
+tapply(leaders$warbefore, leaders$success, mean)
+```
+
+# 5. 暗杀领导人成功是否会带来民主化？暗杀领导人成功是否会导致该国发生战争？
+```{r}
+leadersas <- subset(leaders, subset = (leaders$success == 1)) # 将数据集分集，得到暗杀成功的数据
+leadersuas <- subset(leaders, subset = (leaders$success == 0)) # 将数据集分集，得到暗杀失败的数据
+# 民主化使用政权平均得分来体现
+# 暗杀前三年的政权平均得分（暗杀成功的情况）
+spolitybefore <- mean(leadersas$politybefore)
+# 暗杀后三年的政权平均得分（暗杀成功的情况）
+spolityafter <- mean(leadersas$polityafter)
+# 暗杀成功组的政权平均得分差异
+difas <- spolityafter - spolitybefore
+difas
+
+# 暗杀前三年的政权平均得分（暗杀失败的情况）
+upolitybefore <- mean(leadersuas$politybefore)
+# 暗杀后三年的政权平均得分（暗杀失败的情况）
+upolityafter <- mean(leadersuas$polityafter)
+# 暗杀成功组的政权平均得分差异
+difuas <- upolityafter - upolitybefore
+difuas
+
+# 得到did估计量
+did <- difas - difuas
+did
+
+## 暗杀领导人成功是否会导致该国发生战争(包括国际和国内战争)?
+leadersas <- subset(leaders, subset = (leaders$success == 1)) # 将数据集分集，得到暗杀成功的数据
+leadersuas <- subset(leaders, subset = (leaders$success == 0)) # 将数据集分集，得到暗杀失败的数据
+
+# 刺杀成功的发生战争率
+# 创建warafter二元变量，1表示后三年有国内或国际战争经验，0表示没有
+leaders$warafter <- NA
+leaders$warafter[leaders$interwarafter == 1 | leaders$civilwarafter == 1] <- 1
+leaders$warafter[leaders$interwarafter == 0 & leaders$civilwarafter == 0] <- 0
+# table(leaders$warafter)
+tapply(leaders$warafter, leaders$success, mean)
+
+# 刺杀成功和失败的发生战争率之差
+dif <- mean(leaders$warafter[leaders$success == 1]) - mean(leaders$warafter[leaders$success == 0])
+dif
+
+这里有点问题，其实还是个倍差问题
+
+```
+
+

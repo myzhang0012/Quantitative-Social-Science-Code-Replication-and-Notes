@@ -1,0 +1,508 @@
+---
+title: "QSS_Chapter3"
+author: "my"
+date: "2021/12/9"
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+geometry: left=2.5cm,right=2cm,top=3cm,bottom=2.5cm
+documentclass: ctexart
+classoption: hyperref,
+---
+
+```{r}
+setwd("D:/QSS/Chapter3_Measurement")
+afghan <- read.csv("afghan.csv")
+View(afghan)
+summary(afghan)
+```
+
+```{r}
+library(ggplot2)
+
+```
+
+```{r}
+prop.table(table(ISAF = afghan$violent.exp.ISAF,
+                 Taliban = afghan$violent.exp.taliban))
+```
+
+```{r}
+## 打印出前十位回复者的收入数据
+head(afghan$income, n = 10)
+## 查看他们的收入数据是否缺失
+head(is.na(afghan$income), n = 10)
+```
+
+```{r}
+sum(is.na(afghan$income))  # 缺失值总数
+mean(is.na(afghan$income)) # 缺失值比例
+```
+
+```{r}
+prop.table(table(ISAF = afghan$violent.exp.ISAF, 
+                 Taliban = afghan$violent.exp.taliban, exclude = NULL))
+```
+
+```{r}
+afghan.sub <- na.omit(afghan)  # 对整个数据使用列表式删除
+nrow(afghan.sub)               
+length(na.omit(afghan$income)) 
+```
+
+```{r}
+# 统计给出不同回复的比例
+ISAF.ptable <- prop.table(table(ISAF = afghan$violent.exp.ISAF, 
+                                exclude = NULL))
+ISAF.ptable
+Taliban.ptable <- prop.table(table(Taliban = afghan$violent.exp.taliban, 
+                                exclude = NULL))
+Taliban.ptable
+```
+
+
+```{r}
+# 在一个图形文件中将多个相邻图打印出来
+par(mfrow=c(1, 2), cex = 0.7)
+# 画出民众受到ISAF和塔利班的伤害情况的两个条形图
+barplot(ISAF.ptable,
+        names.arg = c("No harm", "Harm", "Nonresponse"), # 指定每个小节标签
+        main = "Civilian victimization by the ISAF",
+        xlab = "Response category",
+        ylab = "Proportion of the respondents", 
+        ylim = c(0, 0.7)
+        )
+barplot(Taliban.ptable,
+        names.arg = c("No harm", "Harm", "Nonresponse"),
+        main = "Civilian victimization by the Taliban",
+        xlab = "Response category",
+        ylab = "Proportion of the respondents", 
+        ylim = c(0, 0.7)
+        )
+```
+
+```{r}
+ptable <- prop.table(table(ISAF = afghan$violent.exp.ISAF, 
+                           Taliban = afghan$violent.exp.taliban, 
+                           exclude = NULL))
+
+category <- c("No harm", "Harm", "Nonresponse")
+# organization <- c("ISAF", "taliban")
+# ggplot(data = afghan, mapping = (x=)) 
+```
+
+```{r}
+hist(afghan$age, freq = FALSE, ylim = c(0, 0.04), xlab = "Age", 
+     main = "Distribution of respondent's age")
+```
+
+```{r}
+hist(afghan$age, freq = FALSE, ylim = c(0, 0.04), xlab = "Age", 
+     main = "Distribution of respondent's age")
+```
+
+```{r}
+hist(afghan$educ.years, freq = FALSE, 
+     breaks = seq(from = -0.5, to = 18.5, by = 1),
+     xlab = "Years of eduction", 
+     main = "Distribution of respondent's age")
+text(x = 3, y = 0.5, "median") # 文本标签“median”出现在(3, 0.5)的位置
+abline(v = median(afghan$educ.years)) # 在中位数处绘制一条垂直线
+```
+
+```{r}
+hist(afghan$educ.years, freq = FALSE, 
+     breaks = seq(from = -0.5, to = 18.5, by = 1),
+     xlab = "Years of eduction", 
+     main = "Distribution of respondent's age")
+text(x = 3, y = 0.5, "median") # 文本标签“median”出现在(3, 0.5)的位置
+lines(x = rep(median(afghan$educ.years), 2), y = c(0, 0.5)) # 线在直方图底部和顶部之间延申
+```
+
+
+```{r}
+# 年龄的分布情况
+boxplot(afghan$age, main = "Distribution of age", ylab = "Age",
+        ylim = c(10, 80))
+```
+
+```{r}
+# 各省教育年份的分布情况
+boxplot(educ.years ~ province, data = afghan,
+        main = "Education by province", ylab = "Years of education")
+# 计算各个省份对相应问题的肯定回答的比例
+tapply(afghan$violent.exp.taliban, afghan$province, mean, na.rm = TRUE)
+tapply(afghan$violent.exp.ISAF, afghan$province, mean, na.rm = TRUE)
+```
+
+```{r}
+# pdf(file = "hist.pdf", height = 4, width = 8)
+
+par(mfrow = c(1, 2), cex = 0.8)
+
+hist(afghan$age, freq = FALSE,
+     xlab = "Age", ylim = c(0, 0.04), 
+     main = "Distribution of respondent's age")
+
+hist(afghan$educ.years, freq = FALSE, 
+     breaks = seq(from = -0.5, to = 18.5, by = 1),
+     xlab = "Years of eduction", 
+     xlim = c(0, 20), 
+     main = "Distribution of respondent's age")
+# dev.off()
+
+```
+
+# 调查抽样
+## 随机化的作用
+```{r}
+afghan_village <- read.csv("afghan-village.csv")
+# View(afghan_village)
+
+# 以原始尺度（以千计和对数尺度）展示阿富汗村庄人口的直方图。没有对数转换，人口分布就会偏离
+par(mfrow = c(1, 2), cex = 0.8)
+hist((afghan_village$population / 1000), freq = FALSE, 
+     breaks = seq(from = 0, to = 40, by = 5), 
+     ylim = c(0, 0.4), 
+     xlab = "population（in thousands）", 
+     main = "Distribution of village's population")
+
+hist(log(afghan_village$population), freq = FALSE, 
+     ylim = c(0, 0.4), 
+     xlab = "log population", 
+     main = "Distribution of village's population")
+
+
+
+boxplot(altitude ~ village.surveyed, data = afghan_village, 
+        ylab = "Altitude (meters)", names = c("Nonsampled", "Sampled"))
+
+boxplot(log(population) ~ village.surveyed, data = afghan_village, 
+        ylab = "log population", names = c("Nonsampled", "Sampled"))
+
+```
+
+
+## 拒访和其他偏误来源
+```{r}
+tapply(is.na(afghan$violent.exp.taliban), afghan$province, mean)
+
+tapply(is.na(afghan$violent.exp.ISAF), afghan$province, mean)
+```
+
+```{r}
+mean(afghan$list.response[afghan$list.group == "ISAF"]) - 
+    mean(afghan$list.response[afghan$list.group == "control"])
+
+table(response = afghan$list.response, group = afghan$list.group)
+
+```
+
+
+# 度量政治极化
+# 概括双变量关系
+## 散点图
+```{r}
+congress <- read.csv("congress.csv")
+# View(congress)
+
+rep <- subset(congress, subset = (party == "Republican"))
+dem <- congress[congress$party == "Democrat", ] # 另一种取子集的方法
+
+rep80 <- subset(rep, subset = (congress == 80))
+dem80 <- subset(dem, subset = (congress == 80))
+rep112 <- subset(rep, subset = (congress == 112))
+dem112 <- subset(dem, subset = (congress == 112))
+
+xlab <- "Economic liberalism/conservatism"
+ylab <- "Racial liberalism/conservatism"
+lim <- c(-1.5, 1.5)
+
+# example(points)
+
+# plot(dem80$dwnom1, dem80$dwnom2, pch = 16, col = "blue", 
+#      xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+#      main = "80th Congress") # 支持材料里的
+# plot(dem80$dwnom1, dem80$dwnow2, pch = 16, col = "blue", 
+#      xlim = lim, ylim = lim, xlab = xlab, ylab = ylab, 
+#      main = "80th Congress") # 自己敲的
+plot(dem80$dwnom1, dem80$dwnom2, pch = 16, col = "blue", 
+     xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+     main = "xxxx")
+
+
+# points(rep80$dwnom1, rep80$dwnom2, pch = 17, col = "red")
+# text(-0.75, 1, "Demorats")
+# text(1, -1, "Republicans")
+plot(dem112$dwnom1, dem112$dwnow2, pch = 16, col = "blue",
+     xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+     main = "112th Congress")
+# plot(dem112$dwnom1, dem112$dwnom2, pch = 16, col = "blue", 
+#      xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+#      main = "112th Congress")
+# points(rep112$dwnom1, rep112$dwnom2, pch = 17, col = "red")
+
+dem.median <- tapply(dem$dwnom1, dem$congress, median)
+rep.median <- tapply(rep$dwnom1, rep$congress, median)
+
+plot(names(dem.median), dem.median, col = "blue", type = "l",
+     xlim = c(80, 115), ylim = c(-1, 1), xlab = "Congress",
+     ylab = "DW-NOMINATE score (first dimension)")
+lines(names(rep.median), rep.median, col = "red")
+text(110, -0.6, "Democratic\n Party")
+text(110, 0.85, "Republican\n Party")
+```
+
+```{r}
+congress <- read.csv("congress.csv")
+
+## 按党派取出子集
+rep <- subset(congress, subset = (party == "Republican"))
+dem <- congress[congress$party == "Democrat", ] # 另一种取子集的方式
+## 取出第80届和第112届两个党派的子集
+rep80 <- subset(rep, subset = (congress == 80))
+dem80 <- subset(dem, subset = (congress == 80))
+rep112 <- subset(rep, subset = (congress == 112))
+dem112 <- subset(dem, subset = (congress == 112))
+
+## 使用同一组坐标轴标签和数值范围创建多个散点图
+xlab <- "Economic liberalism/conservatism"
+ylab <- "Racial liberalism/conservatism"
+lim <- c(-1.5, 1.5)
+## 绘制第80届国会的散点图
+plot(dem80$dwnom1, dem80$dwnom2, pch = 16, col = "blue", 
+     xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+     main = "80th Congress") # 民主党
+points(rep80$dwnom1, rep80$dwnom2, pch = 17, col = "red") # 共和党
+text(-0.75, 1, "Democrats")
+text(1, -1, "Republicans")
+## 绘制第112届国会的散点图
+plot(dem112$dwnom1, dem112$dwnom2, pch = 16, col = "blue", 
+     xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+     main = "112th Congress")
+points(rep112$dwnom1, rep112$dwnom2, pch = 17, col = "red")
+
+
+```
+
+```{r}
+library(ggplot2)
+# View(congress)
+head(congress)
+table(congress$party)
+
+# 取出不包含其他党派的子集
+repdem <- subset(congress, subset = (party != "Other"))
+table(repdem$party)
+# 分别取出第80届和第112届国会的民主党和共和党的子集（不包含其他党派）
+repdem80 <- subset(repdem, subset = (congress == 80))
+repdem112 <- subset(repdem, subset = (congress == 112))
+
+# 绘制散点图，并设置坐标轴数值范围和显示的刻度标签
+ggplot(data = repdem80, aes(x=dwnom1, y=dwnom2, color=party)) +
+  geom_point() + 
+  scale_x_continuous(breaks = seq(from = -1.5, to = 1.5, by = 0.5), limits = c(-1.5, 1.5)) +
+  scale_y_continuous(breaks = seq(from = -1.5, to = 1.5, by = 0.5), limits = c(-1.5, 1.5))
+
+ggplot(data = repdem112, aes(x=dwnom1, y=dwnom2, color=party)) +
+  geom_point() + 
+  scale_x_continuous(breaks = seq(from = -1.5, to = 1.5, by = 0.5), limits = c(-1.5, 1.5)) +
+  scale_y_continuous(breaks = seq(from = -1.5, to = 1.5, by = 0.5), limits = c(-1.5, 1.5))
+
+# 设置两个散点图在同一个界面中的布局
+
+```
+
+
+```{r}
+## 得到每届国会的民主党和共和党的中立立法者（以第一维度经济维度为例
+dem.median <- tapply(dem$dwnom1, dem$congress, median)
+rep.median <- tapply(rep$dwnom1, rep$congress, median)
+
+## 创建一个折线图，观察两党的中立议员如何随时间变化
+plot(names(dem.median), dem.median, col = "blue", type = "l",
+     xlim = c(80, 115), ylim = c(-1, 1), xlab = "Congress",
+     ylab = "DW-NOMINATE score (1st dimension)") # 民主党
+lines(names(rep.median), rep.median, col = "red") # 共和党
+text(110, -0.6, "Democratic\n Party")
+text(110, 0.85, "Republican\n Party")
+```
+
+
+```{r}
+congress <- read.csv("congress.csv")
+
+## 按党派取出子集
+rep <- subset(congress, subset = (party == "Republican"))
+dem <- congress[congress$party == "Democrat", ] # 另一种取子集的方式
+## 取出第80届和第112届两个党派的子集
+rep80 <- subset(rep, subset = (congress == 80))
+dem80 <- subset(dem, subset = (congress == 80))
+rep112 <- subset(rep, subset = (congress == 112))
+dem112 <- subset(dem, subset = (congress == 112))
+
+## 使用同一组坐标轴标签和数值范围创建多个散点图
+xlab <- "Economic liberalism/conservatism"
+ylab <- "Racial liberalism/conservatism"
+lim <- c(-1.5, 1.5)
+## 绘制第80届国会的散点图
+plot(dem80$dwnom1, dem80$dwnom2, pch = 16, col = "blue", 
+     xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+     main = "80th Congress") # 民主党
+points(rep80$dwnom1, rep80$dwnom2, pch = 17, col = "red") # 共和党
+text(-0.75, 1, "Democrats")
+text(1, -1, "Republicans")
+## 绘制第112届国会的散点图
+plot(dem112$dwnom1, dem112$dwnom2, pch = 16, col = "blue", 
+     xlim = lim, ylim = lim, xlab = xlab, ylab = ylab,
+     main = "112th Congress")
+points(rep112$dwnom1, rep112$dwnom2, pch = 17, col = "red")
+
+## 得到每届国会的民主党和共和党的中位立法者（现在只看第一维度经济维度
+dem.median <- tapply(dem$dwnom1, dem$congress, median)
+rep.median <- tapply(rep$dwnom1, rep$congress, median)
+
+## 创建一个折线图，观察两党的中位议员如何随时间变化
+plot(names(dem.median), dem.median, col = "blue", type = "l",
+     xlim = c(80, 115), ylim = c(-1, 1), xlab = "Congress",
+     ylab = "DW-NOMINATE score (1st dimension)") # 民主党
+lines(names(rep.median), rep.median, col = "red") # 共和党
+text(110, -0.6, "Democratic\n Party")
+text(110, 0.85, "Republican\n Party")
+```
+
+
+## 相关性
+```{r}
+gini <- read.csv("USGini.csv")
+range(gini$year) # 1947年到2013年
+plot(seq(from = 1947.5, to = 2011.5, by = 2), rep.median - dem.median, 
+     xlab = "Year", ylab = "Republican median -\n Democratic median",
+     main = "Political polarization")
+plot(gini$year, gini$gini, 
+     ylim = c(0.35, 0.45), xlab = "Year",
+     ylab = "Gini coefficient", main = "Income inequality")
+
+cor(gini$gini[seq(from = 2, to = nrow(gini), by = 2)], 
+    rep.median - dem.median)
+```
+```{r}
+par(mfrow = c(1, 2), cex = 0.8)
+hist(dem112$dwnom2, freq = FALSE, main = "Democrats", 
+     xlim = c(-1.5, 1.5), ylim = c(0, 1.75), 
+     xlab = "Racial liberalism/conservatism dimension") 
+hist(rep112$dwnom2, freq = FALSE, main = "Republicans",
+     xlim = c(-1.5, 1.5), ylim = c(0, 1.75), 
+     xlab = "Racial liberalism/conservatism dimension") 
+
+```
+
+## 分位数-分位数图（Q-Q图）
+
+```{r}
+qqplot(dem112$dwnom2, rep112$dwnom2, xlab = "Democrats", 
+       ylab = "Republicans", xlim = c(-1.5, 1.5), ylim = c(-1.5, 1.5), 
+       main = "Racial liberalism/conservatism dimension")
+abline(0, 1)
+```
+
+# 聚类
+## R中的矩阵
+```{r}
+x <- matrix(1:12, nrow = 3, ncol = 4, byrow = TRUE)
+rownames(x) <- c("a", "b", "c")
+colnames(x) <- c("d", "e", "f", "g")
+dim(x)
+x
+
+y <- data.frame(y1 = as.factor(c("a", "b", "c")), y2 = c(0.1, 0.2, 0.3))
+class(y$y1)
+class(y$y2)
+
+z <- as.matrix(y)
+z
+
+# colSum(), colMeans(), rowSum(), rowMean()函数 
+colSums(x)
+rowMeans(x)
+
+apply(x, 2, sum)
+apply(x, 1, mean)
+apply(x, 1, sd)
+
+```
+
+## R中的列表
+```{r}
+x <- list(y1 = 1:10, y2 = c("hi", "hello", "hey"), 
+          y3 = data.frame(z1 = 1:3, z2 = c("good", "bad", "ugly")))
+# 三种从列表中提取元素的方法
+x$y1
+x[[2]]
+x[["y3"]]
+
+names(x)
+length(x)
+
+```
+
+## k均值算法
+```{r}
+dwnom80 <- cbind(congress$dwnom1[congress$congress == 80],
+                 congress$dwnom2[congress$congress == 80])
+dwnom112 <- cbind(congress$dwnom1[congress$congress == 112],
+                  congress$dwnom2[congress$congress == 112])
+
+## 聚成两个类
+k80two.out <- kmeans(dwnom80, centers = 2, nstart = 5)
+k112two.out <- kmeans(dwnom112, centers = 2, nstart = 5)
+
+names(k80two.out)
+
+k80two.out$centers
+k112two.out$centers
+
+```
+
+```{r}
+## 创建党派和聚类标签变量的交叉列表来计算属于每个聚类的民主党和共和党议员的数量
+table(party = congress$party[congress$congress == 80], 
+      cluster = k80two.out$cluster)
+table(party = congress$party[congress$congress == 112], 
+      cluster = k112two.out$cluster)
+
+```
+
+```{r}
+# xlab <- "Economic liberalism/conservatism"
+# ylab <- "Racial liberalism/conservatism"
+# lim <- c(-1.5, 1.5)
+
+
+## 聚成四个类
+k80four.out <- kmeans(dwnom80, centers = 4, nstart = 5)
+k112four.out <- kmeans(dwnom112, centers = 4, nstart = 5)
+
+par(mfrow = c(1, 2), cex = 0.8)
+## 绘制第80届国会的四个聚类的散点图
+plot(dwnom80, col = k80four.out$cluster + 1, xlab = xlab, ylab = ylab,
+                  xlim = lim, ylim = lim, main = "80th Congress")
+## 绘制质心
+points(k80four.out$centers, pch = 8, cex = 2)
+
+## 绘制第112届国会的四个聚类的散点图
+plot(dwnom112, col = k112four.out$cluster + 1, xlab = xlab, ylab = ylab,
+                  xlim = lim, ylim = lim, main = "112th Congress")
+points(k112four.out$centers, pch = 8, cex = 2)
+
+# palette()
+
+
+```

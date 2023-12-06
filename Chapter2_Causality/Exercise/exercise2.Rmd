@@ -1,0 +1,123 @@
+---
+title: "劝说邻里支持同性恋婚姻"
+author: "my"
+date: "2021/12/6"
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+geometry: left=2.5cm,right=2cm,top=3cm,bottom=2.5cm
+documentclass: ctexart
+classoption: hyperref,
+---
+
+```{r}
+setwd("D:/QSS/Chapter2_Causality/Exercise")
+gay <- read.csv("gay.csv")
+# View(gay)
+summary(gay)
+dim(gay)
+```
+
+# 1. 用干预前的基准数据检验有没有实现干预的随机化
+根据第一项研究的三组：“同性恋脚本与同性恋宣传者”，“同性恋脚本与异性恋宣传者”，“没有接触”
+```{r}
+# 取第一项研究中的第一次访谈的数据，以检验干预前三组数据是否类似
+gay11 <- subset(gay, 
+  subset = (gay$study == 1 & gay$wave == 1 &
+    (gay$treatment == "Same-Sex Marriage Script by Gay Canvasser" | 
+      gay$treatment == "Same-Sex Marriage Script by Straight Canvasser" |
+        gay$treatment == "No Contact")))
+## 干预前变量的差异
+tapply(gay11$ssm, gay11$treatment, mean) 
+## 实现了干预的随机化
+
+```
+ 
+ # 2. 使用第一个研究的数据，分别评估同性恋和异性恋宣传者对同性婚姻支持问题的平均干预效应
+ 
+```{r}
+# 进行宣传后的第二次调查结果
+gay12 <- subset(gay, subset = (gay$study == 1 & gay$wave == 2 )) 
+## 同性恋宣传者对同性婚姻支持的平均干预效应
+difgn <- mean(gay12$ssm[gay12$treatment == "Same-Sex Marriage Script by Gay Canvasser"]) -
+  mean(gay12$ssm[gay12$treatment == "No Contact"])
+difgn
+## 异性恋宣传者对同性婚姻支持的平均干预效应
+difsn <- mean(gay12$ssm[gay12$treatment == "Same-Sex Marriage Script by Straight Canvasser"]) - 
+  mean(gay12$ssm[gay12$treatment == "No Contact"])
+difsn
+```
+
+# 3. 添加鼓励人们多收废品的话题干预，使用研究一的第二次访谈，比较“同性恋宣传者讨论同性恋脚本”、“同性恋宣传者讨论回收废品脚本”、“异性恋宣传者谈论关于鼓励回收废品的脚本”
+```{r}
+## 不同的话题内容对同性婚姻支持的影响
+## 比较研究一第二次访谈“同性恋宣传者讨论同性恋婚姻脚本”与“同性恋宣传者讨论回收废品脚本”结果
+difgmr <- mean(gay12$ssm[gay12$treatment == "Same-Sex Marriage Script by Gay Canvasser"]) - 
+  mean(gay12$ssm[gay12$treatment == "Recycling Script by Gay Canvasser"])
+difgmr
+## 比较研究一第二次访谈“异性恋宣传者讨论同性恋婚姻脚本”与“异性恋宣传者讨论回收废品脚本”结果
+difsmr <- mean(gay12$ssm[gay12$treatment == "Same-Sex Marriage Script by Straight Canvasser"]) - 
+  mean(gay12$ssm[gay12$treatment == "Recycling Script by Straight Canvasser"])
+difsmr
+
+# 判断2中的干预效果到底是因为不同人群彼此作用引起的，还是话题引起的？？？
+```
+
+# 4. 研究一中，最后一次采访发生在干预一年后，两年前的宣讲是否仍然有效，是在哪种条件下保持了这种效应？
+分别计算：异性恋宣传者对同性恋婚姻脚本每轮的平均效应（相对于控制条件）；同性恋宣传者对同性恋婚姻脚本每轮的平均效应（相对于控制条件）
+```{r}
+# 对数据集进行分集，得到不同干预条件下的数据集
+gaync <- subset(gay,gay$study == 1 & gay$treatment == "No Contact")
+gaysc <- subset(gay,gay$study == 1 & gay$treatment == "Same-Sex Marriage Script by Straight Canvasser")
+gaygc <- subset(gay,gay$study == 1 & gay$treatment == "Same-Sex Marriage Script by Gay Canvasser")
+# 异性恋宣传者对同性恋婚姻脚本每轮的平均效应（相对于控制条件）
+tapply(gaysc$ssm, gaysc$wave, mean) - tapply(gaync$ssm, gaync$wave, mean)
+# 同性恋宣传者对同性恋婚姻脚本每轮的平均效应（相对于控制条件）
+tapply(gaygc$ssm, gaygc$wave, mean) - tapply(gaync$ssm, gaync$wave, mean)
+
+# 发现第七轮中同性恋宣传者的宣传仍有效果，但异性恋的宣传没有效果了
+
+
+```
+
+# 5. 研究二中同性恋脚本只能由同性恋宣讲员来宣讲，检查研究二是否实现了随机化
+```{r}
+# 取第一项研究中的第一次访谈的数据，以检验干预前“使用同性恋宣传者谈论同性恋婚姻脚本”和“不接触”数据是否类似
+gay21 <- subset(gay, subset = (gay$study == 2 & gay$wave == 1 & 
+                                 (gay$treatment == "Same-Sex Marriage Script by Gay Canvasser" | 
+                                    gay$treatment == "No Contact")))
+## 两组的差异
+tapply(gay21$ssm, gay21$treatment, mean) 
+## 对于第二次研究也存在干预的随机化
+```
+
+# 6. 使用第二次研究第二轮的数据取估计同性恋宣讲的干预效应，结果是否与第一次一致？
+```{r}
+difgn2 <- mean(gay$ssm[gay$study == 2 & gay$wave == 2 & 
+                         gay$treatment == "Same-Sex Marriage Script by Gay Canvasser"]) - 
+          mean(gay$ssm[gay$study == 2 & gay$wave == 2 & 
+                         gay$treatment == "No Contact"])
+difgn
+difgn2
+## 与研究一中的结果差不多
+```
+
+# 7. 研究二中，估计同性恋宣讲在每次后续访谈中的平均效应，观察他们随时间而发生的变化
+```{r}
+# 对数据集进行分集，得到不同条件下的数据集
+gaync2 <- subset(gay,gay$study == 2 & gay$treatment == "No Contact")
+gaygc2 <- subset(gay,gay$study == 2 & gay$treatment == "Same-Sex Marriage Script by Gay Canvasser")
+# 研究一同性恋宣传者对同性恋婚姻脚本每轮的平均效应
+tapply(gaygc$ssm, gaygc$wave, mean) - tapply(gaync$ssm, gaync$wave, mean)
+# 研究二中同性恋宣传者对同性恋婚姻脚本每轮的平均效应
+tapply(gaygc2$ssm, gaygc2$wave, mean) - tapply(gaync2$ssm, gaync2$wave, mean)
+
+```
+

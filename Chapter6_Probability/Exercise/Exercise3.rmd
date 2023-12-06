@@ -1,0 +1,91 @@
+---
+title: "Code for QSS Chapter6"
+author: "zmy"
+date: "2021/12/26"
+documentclass: ctexart
+geometry: "left=2.5cm,right=2cm,top=3cm,bottom=2.5cm"
+output:
+  rticles::ctex:
+    fig_caption: yes
+    #number_sections: yes
+    toc: yes
+classoption: "hyperref,"
+---
+# 3 俄罗斯的选举舞弊
+## 3.1 分析2011年俄罗斯大选的数据
+```{r}
+## 导入数据
+setwd("D:/QSS/Chapter6_Probability/Exercise")
+fraud <- load("fraud.RData")
+library(MASS)
+```
+
+数据说明——
+* N：选区的选民总数
+* turnout：选区出席投票的选民数
+* votes：选区内获胜者的得票数
+```{r}
+LR11 <- nrow(russia2011) # 数据长度，选区数量
+R11VT <- russia2011$votes / russia2011$turnout # 不同选区俄罗斯2011年统一党选票占比
+R11VT.f <- fractions(R11VT)                    # fractions()转化为分数形式
+table(as.character(R11VT.f))
+# ## 以数据框格式存储选票占比中值的出现次数
+# R11VT.fn <- as.data.frame(table(               # 统计比例次数后转为数据框格式
+#                     as.character(R11VT.f)))    # 保留数据中的分数形式
+# names(R11VT.fn) <- c("R11VT.f", "number")      # 命名列
+# R11VT.fn
+# R11VT.fn$proportion <- R11VT.fn$number / LR11 # 统计不同分数出现的比例
+## 找出十个最频繁出现的比例：按比例大小降序排序后取前10
+## sort(R11VT.f, decreasing = TRUE)[1:10]
+
+
+
+## 绘制直方图
+hist(R11VT.f, freq = FALSE,
+     breaks = R11VT.f, 
+     xlab = "选票占比",
+     ylim = c(0, 60), 
+     main = "俄罗斯统一党选票占比直方图"
+     )
+
+# x <- seq(from = 0, to = 1, by = 0.1)
+# hist(R11VT.f, freq = FALSE,
+#      breaks = x,
+#      xaxt = "n", # 删除x轴刻度线及刻度值
+#      xlab = "选票占比",
+#      main = "俄罗斯统一党选票占比直方图")
+# axis(side = 1, at = x, labels = fractions(x))  # 设置坐标轴刻度
+
+## 选出1/2和2/3的分数，在直方图中标记出来
+```
+对于分母和分子都比较小的罕见小分数，以下统称为小分数。
+```{r}
+sf <- c(1/2, 1/3, 2/3, 1/4, 3/4)                # special fractions，特殊小分数的值
+R11VT.sf <- R11VT[R11VT %in% sf]                # 取出选票占比为特殊小分数的子集
+R11VT.sf <- fractions(R11VT.sf)                 # 转化为分数形式
+R11VT.sfn <- as.data.frame(table(as.character(R11VT.sf))) # 统计比例值个数
+names(R11VT.sfn) <- c("R11VT.sf", "number")     # 命名列
+R11VT.sfn$proportion <- R11VT.sfn$number / LR11 # 计算比例值占比
+R11VT.sfn
+## 绘制小分数直方图
+hist(R11VT.sf, freq = FALSE,
+     breaks = c(0, sf),
+     xaxt = "n", # 删除x轴刻度线及刻度值
+     xlab = "选票占比",
+     main = "俄罗斯统一党选票小分数占比直方图")
+xsf <- c(0, (0 + 1/4)/2, (1/4 + 1/3)/2, (1/3 + 1/2)/2, (1/2 + 2/3)/2, (2/3 + 3/4)/2, 1)
+axis(side = 1, at = xsf, labels = fractions(c(0, sf[order(sf)], 1))) # 设置坐标轴刻度
+## 绘制小分数条形图
+barplot(table(as.character(R11VT.sf)),
+        names = R11VT.sfn$R11VT.sf,
+        xlab = "选票占比",
+        main = "俄罗斯统一党选票小分数占比条形图")
+```
+
+## 3.2 分析小分数偶然出现的可能性
+* 每一区域的出席投票数是一个二项分布：规模等于选民数量，成功率等于选区的投票率。
+* 统一俄罗斯党在该选区的投票份额假设遵循二项式分布，以投票率为条件，其中规模等于投票的选民数量，成功概率等于该选区中观察到的投票份额。
+* 在该假设下，开展蒙特卡洛模拟（1000次）。
+```{r}
+dbinom()
+```
